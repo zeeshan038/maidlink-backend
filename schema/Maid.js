@@ -14,6 +14,10 @@ const registerSchema = Joi.object({
     "string.empty": "Service city is required.",
     "any.required": "Service city is a mandatory field.",
   }),
+  role: Joi.string().required().messages({
+    "string.empty": "role is required.",
+    "any.required": "role is a mandatory field.",
+  }),
   profileImg:Joi.string().uri().required().optional().messages({
     "string.uri": "Profile image must be a valid URL.",
   }),

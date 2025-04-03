@@ -115,6 +115,7 @@ module.exports.register = async (req, res) => {
       phone: payload.phone,
       password: hashedPassword,
       profileImg: payload.profileImg,
+      role : payload.role ,
       homeAddress: payload.homeAddress,
     });
 
@@ -161,6 +162,9 @@ module.exports.login = async (req, res) => {
       });
     }
 
+
+    const user = await owner.findOne({ userName: payload.userName });
+
     //Checking password
     const validPassword = await bcrypt.compareSync(
       payload.password,
@@ -183,6 +187,7 @@ module.exports.login = async (req, res) => {
       .json({
         status: true,
         message: "User Logged In Successfully!",
+        role : user.role,
         id: validUser._id,
         token,
       });

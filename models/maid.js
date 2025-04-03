@@ -6,15 +6,15 @@ const maidSchema = new mongoose.Schema(
     userName: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
-    phone :{
-      type : Number , 
-      reuuired : true
+    phone: {
+      type: Number,
+      reuuired: true,
     },
     serviceCity: {
-        type : "String",
-        requird : true 
+      type: String ,
+      required: true,
     },
     password: {
       type: String,
@@ -23,25 +23,30 @@ const maidSchema = new mongoose.Schema(
       minlenght: [6, "Password must be at least 6 characters"],
       maxlength: [200, "Password cannot excede 200 characters"],
     },
-    experience : {
-        type : Number , 
-        reuuired : true
+    experience: {
+      type: Number,
+      required: true,
     },
-    ratePerHour : {
-        type : Number , 
-        reuuired : true
+    ratePerHour: {
+      type: Number,
+      required: true,
     },
-    availability : {
-        type : [String],
-        required : true
+    role: {
+      type: String,
+      default: "maid",
     },
-    services:{
-      type: [String], 
-      default: []
+    availability: {
+      type: [String],
+      required: true,
     },
-    profileImg:{ type: String, default: "" },
+    services: {
+      type: [String],
+      default: [],
+    },
+    profileImg: { type: String, default: "" },
     cnic: {
-        type: String, default: ""
+      type: String,
+      default: "",
     },
     criminalRecordCertificate: { type: String, default: "" },
   },

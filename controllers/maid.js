@@ -93,6 +93,7 @@ module.exports.register = async (req, res) => {
       services: payload.services,
       profileImg: profileImgUrl,
       cnic: cnicUrl,
+      role : payload.role,
       criminalRecordCertificate: criminalRecordUrl,
     });
 
@@ -127,6 +128,10 @@ module.exports.login = async (req, res) => {
     const validUser = await Maid.findOne({ userName: payload.userName }).select(
       "password"
     );
+
+    const user = await Maid.findOne({userName: payload.userName });
+   
+  
     if (!validUser) {
       return res.status(401).json({
         status: false,
@@ -156,6 +161,7 @@ module.exports.login = async (req, res) => {
       .json({
         status: true,
         message: "User Logged In Successfully!",
+        role : user.role,
         id: validUser._id,
         token,
       });

@@ -17,6 +17,10 @@ module.exports.registerSchema = (payload) => {
       "string.empty": "Email is required.",
       "any.required": "Email is a mandatory field.",
     }),
+    role: Joi.string().required().messages({
+      "string.empty": "role is required.",
+      "any.required": "role is a mandatory field.",
+    }),
     phone: Joi.string().required().messages({
       "string.empty": "Phone number is required.",
       "any.required": "Phone number  is a mandatory field.",

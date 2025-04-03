@@ -21,6 +21,10 @@ const ownerSchema = new mongoose.Schema(
       type : Number , 
       reuuired : true
     },
+    role: {
+      type: String,
+      default: "owner",
+    },
     profileImg: { type: String, default: "" },
     password: {
       type: String,
