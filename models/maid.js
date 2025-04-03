@@ -33,15 +33,14 @@ const maidSchema = new mongoose.Schema(
     },
     availability : {
         type : [String],
-        enum : ["Part Time", "Full Time"],
         required : true
     },
     services:{
-        type : [String],
-        required : true
+      type: [String], 
+      default: []
     },
-    profileImage: { type: String, default: "" },
-    cinc : {
+    profileImg:{ type: String, default: "" },
+    cnic: {
         type: String, default: ""
     },
     criminalRecordCertificate: { type: String, default: "" },

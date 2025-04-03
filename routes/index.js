@@ -1,10 +1,13 @@
 const router = require("express").Router();
 
 //paths
-const otp = require("./owner");
+const owner = require("./owner");
+const maid = require("./maid");
+
 
 // routes
-router.use("/user", otp);
+router.use("/user", owner);
+router.use("/maid", maid);
 
 
 module.exports = router;

@@ -21,7 +21,7 @@ const ownerSchema = new mongoose.Schema(
       type : Number , 
       reuuired : true
     },
-    profileImage: { type: String, default: "" },
+    profileImg: { type: String, default: "" },
     password: {
       type: String,
       required: true,

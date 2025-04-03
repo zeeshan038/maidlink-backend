@@ -1,138 +1,111 @@
 //NPM Packages
 const bcrypt = require("bcrypt");
 
-// utils
-const sendOTP = require("../utils/otpcode");
+//utils
+const { uploadFile } = require("../utils/cloudnary");
 
-//models
-const OTP = require("../models/otp");
+//Models
+const Maid = require("../models/maid");
 
-//Schema
+//Schama
 const {
   registerSchema,
   loginSchema,
   passwordSchema,
-  ownerSchema,
-} = require("../schema/Owner");
-//Models
-const owner = require("../models/owner");
-const maid = require("../models/maid")
+  maidSchema,
+} = require("../schema/Maid");
 const genrateToken = require("../utils/genrateToken");
+const sendOTP = require("../utils/otpcode");
+const otp = require("../models/otp");
 
 /**
- * @desciption Verify user phone no
- * @route POST /api/user/send-otp
- * @access Public
- */
-module.exports.sendotp = async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) {
-    return res.status(400).json({ msg: "Phone number is required" });
-  }
-
-  try {
-    const response = await sendOTP(phone);
-
-    if (response.success) {
-      // Store OTP in the database
-      await OTP.create({ phone, otp: response.otp });
-
-      return res.status(200).json({
-        status: true,
-        otp: response.otp,
-        msg: "OTP sent successfully",
-      });
-    } else {
-      return res.status(500).json({ message: response.message });
-    }
-  } catch (error) {
-    res.status(500).json({ msg: "Internal server error" });
-  }
-};
-
-/**
- * @desciption  verify otp
- * @route POST /api/user/verify-otp
- * @access Public
- */
-module.exports.verifyotp = async (req, res) => {
-  const { phone, otp } = req.body;
-
-  if (!phone || !otp) {
-    return res.status(400).json({ msg: "Phone and OTP are required" });
-  }
-
-  try {
-    const validOTP = await OTP.findOne({ phone, otp });
-    if (!validOTP) {
-      return res.status(400).json({ msg: "Invalid or expired OTP" });
-    }
-    // otp got deleted once verfied
-    await OTP.deleteOne({ phone });
-    return res
-      .status(200)
-      .json({ status: true, msg: "OTP verified successfully" });
-  } catch (error) {
-    res.status(500).json({ msg: "Internal server error" });
-  }
-};
-
-/**
- * @desciption regsiter home owner
+ * @desciption maid registeration
  * @route POST /api/user/register
  * @access Public
  */
-
 module.exports.register = async (req, res) => {
   const payload = req.body;
 
-  //Error handling
-  const result = registerSchema(payload);
+  // Ensure services is an array
+  if (typeof payload.services === "string") {
+    try {
+      payload.services = JSON.parse(payload.services);
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ status: false, msg: "Invalid services format" });
+    }
+  }
+
+  // Validate input data
+  const result = registerSchema.validate(payload);
   if (result.error) {
     const errors = result.error.details.map((detail) => detail.message);
-    return res.status(400).json({
-      status: false,
-      msg: errors,
-    });
+    return res.status(400).json({ status: false, msg: errors });
   }
 
   try {
-    const existingUser = await owner.findOne({ userName: payload.userName });
+    // Check if user already exists
+    const existingUser = await Maid.findOne({ userName: payload.userName });
     if (existingUser) {
-      return res.status(400).json({
-        status: false,
-        msg: "User with this email already exists",
-      });
+      return res
+        .status(400)
+        .json({ status: false, msg: "User already exists" });
     }
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(payload.password, salt);
 
-    //Creating user
-    await owner.create({
-      name: payload.name,
+    // Hash password
+    const hashedPassword = await bcrypt.hash(payload.password, 10);
+
+    // Check and upload profile image if it exists
+    let profileImgUrl = "";
+    if (req.files?.profileImg?.[0]) {
+      profileImgUrl = await uploadFile(req.files.profileImg[0].path);
+    }
+
+    // Similarly check for other files
+    let cnicUrl = "";
+    console.log("cnic", cnicUrl);
+
+    if (req.files?.cnic?.[0]) {
+      cnicUrl = await uploadFile(req.files.cnic[0].path);
+      console.log("cnic", cnicUrl);
+    }
+
+    console.log("cnic", cnicUrl);
+
+    let criminalRecordUrl = "";
+    if (req.files?.criminalRecordCertificate?.[0]) {
+      criminalRecordUrl = await uploadFile(
+        req.files.criminalRecordCertificate[0].path
+      );
+    }
+
+    // Save user to database
+    await Maid.create({
       userName: payload.userName,
       email: payload.email,
       phone: payload.phone,
       password: hashedPassword,
-      profileImg: payload.profileImg,
-      homeAddress: payload.homeAddress,
+      serviceCity: payload.serviceCity,
+      experience: payload.experience,
+      ratePerHour: payload.ratePerHour,
+      availability: payload.availability,
+      services: payload.services,
+      profileImg: profileImgUrl,
+      cnic: cnicUrl,
+      criminalRecordCertificate: criminalRecordUrl,
     });
 
-    //Response
-    return res.status(201).json({
-      status: true,
-      msg: "User Registered Successfully!",
-    });
+    return res
+      .status(201)
+      .json({ status: true, msg: "Maid Registered Successfully!" });
   } catch (error) {
-    return res.status(500).json({
-      status: true,
-      msg: error.message,
-    });
+    return res.status(500).json({ status: false, msg: error.message });
   }
 };
 
 /**
- * @desciption login owner
+ * @desciption login maid
  * @route POST /api/user/login
  * @access Public
  */
@@ -151,9 +124,9 @@ module.exports.login = async (req, res) => {
 
   try {
     //Checking valid user
-    const validUser = await owner
-      .findOne({ userName: payload.userName })
-      .select("password");
+    const validUser = await Maid.findOne({ userName: payload.userName }).select(
+      "password"
+    );
     if (!validUser) {
       return res.status(401).json({
         status: false,
@@ -202,10 +175,11 @@ module.exports.login = async (req, res) => {
 
 module.exports.forgotPassword = async (req, res) => {
   const { phone } = req.body;
+  console.log("Phone" , phone)
 
   try {
     // Check if the user exists
-    const user = await owner.findOne({ phone });
+    const user = await Maid.findOne({ phone });
     if (!user) {
       return res.status(400).json({
         status: false,
@@ -217,7 +191,7 @@ module.exports.forgotPassword = async (req, res) => {
     const response = await sendOTP(phone);
     if (response.success) {
       // Store OTP in the database with an expiration time
-      await OTP.create({ phone, otp: response.otp });
+      await otp.create({ phone, otp: response.otp });
 
       return res.status(200).json({
         status: true,
@@ -264,7 +238,7 @@ module.exports.resetPassword = async (req, res) => {
   }
 
   try {
-    const user = await owner.findOne({ phone });
+    const user = await Maid.findOne({ phone });
     if (!user) {
       return res.status(400).json({
         status: false,
@@ -275,7 +249,7 @@ module.exports.resetPassword = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    await owner.updateOne(
+    await Maid.updateOne(
       { _id: user._id },
       {
         password: hashedPassword,
@@ -301,8 +275,8 @@ module.exports.resetPassword = async (req, res) => {
  *  @access Private
  */
 module.exports.changePassword = async (req, res) => {
-  const { _id } = req.user;
-const payload = req.body;
+  const { _id } = req.maid;
+  const payload = req.body;
   //Error Handling
   const result = passwordSchema(payload);
   if (result.error) {
@@ -313,9 +287,9 @@ const payload = req.body;
     });
   }
 
-  console.log("pass" , payload)
+  console.log("pass", payload);
   try {
-    const user = await owner.findById(_id).select("+password");
+    const user = await Maid.findById(_id).select("+password");
 
     if (!user) {
       return res.status(404).json({
@@ -325,7 +299,10 @@ const payload = req.body;
     }
 
     // Compare current password with the stored hashed password
-    const matchPassword = await bcrypt.compare(payload.currentPassword, user.password);
+    const matchPassword = await bcrypt.compare(
+      payload.currentPassword,
+      user.password
+    );
     if (!matchPassword) {
       return res.status(400).json({
         status: false,
@@ -338,7 +315,7 @@ const payload = req.body;
     const hashedPassword = await bcrypt.hash(payload.newPassword, salt);
 
     // Update the user's password
-    await owner.updateOne({ _id }, { password: hashedPassword });
+    await Maid.updateOne({ _id }, { password: hashedPassword });
 
     return res.status(200).json({
       status: true,
@@ -358,14 +335,23 @@ const payload = req.body;
  *  @access Private
  */
 module.exports.editProfile = async (req, res) => {
-  const { _id } = req.user;
-  console.log("user", _id)
+  const { _id } = req.maid;
   let payload = req.body;
 
   // Upload new images if provided
   try {
     if (req.files?.profileImg?.[0]) {
       payload.profileImg = await uploadFile(req.files.profileImg[0].path);
+    }
+
+    if (req.files?.cnic?.[0]) {
+      payload.cnic = await uploadFile(req.files.cnic[0].path);
+    }
+
+    if (req.files?.criminalRecordCertificate?.[0]) {
+      payload.criminalRecordCertificate = await uploadFile(
+        req.files.criminalRecordCertificate[0].path
+      );
     }
   } catch (uploadError) {
     return res.status(500).json({
@@ -374,7 +360,7 @@ module.exports.editProfile = async (req, res) => {
     });
   }
   // Validate updated data
-  const result = ownerSchema(payload);
+  const result = maidSchema(payload);
   if (result.error) {
     const errors = result.error.details.map((detail) => detail.message);
     return res.status(400).json({
@@ -385,7 +371,7 @@ module.exports.editProfile = async (req, res) => {
 
   try {
     // Update maid profile
-    await owner.updateOne({ _id }, { $set: payload });
+    await Maid.updateOne({ _id }, { $set: payload });
 
     return res.status(200).json({
       status: true,
@@ -400,6 +386,7 @@ module.exports.editProfile = async (req, res) => {
   }
 };
 
+
 /**
  *  @description get user info
  *  @route GET /api/user/user-info
@@ -407,10 +394,10 @@ module.exports.editProfile = async (req, res) => {
  */
 
 module.exports.getUserInfo = async (req, res) => {
-  const { _id } = req.user;
+  const { _id } = req.maid;
 
   try {
-    const user = await owner.findById(_id);
+    const user = await Maid.findById(_id);
     if (!user) {
       return res.status(400).json({
         status: false,
@@ -436,9 +423,9 @@ module.exports.getUserInfo = async (req, res) => {
  */
 
 module.exports.deleteUser = async (req, res) => {
-  const { _id } = req.user;
+  const { _id } = req.maid;
   try {
-    const user = await owner.findByIdAndDelete(_id);
+    const user = await Maid.findByIdAndDelete(_id);
     if (!user) {
       return res.status(400).json({
         status: false,
@@ -448,34 +435,6 @@ module.exports.deleteUser = async (req, res) => {
     return res.status(200).json({
       status: true,
       msg: "User deleted successfully",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: false,
-      msg: error.message,
-    });
-  }
-};
-
-
-/**
- * @desciption get all maids
- * @route POST /api/user/all-maids
- * @access Private
- */
-module.exports.getAllMaids = async (req, res) => {
-
-  try {
-    const maids = await maid.find();
-    if (!maids) {
-      return res.status(400).json({
-        status: false,
-        msg: "User not found",
-      });
-    }
-    return res.status(200).json({
-      status: true,
-      maids,
     });
   } catch (error) {
     return res.status(500).json({
