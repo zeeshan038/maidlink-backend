@@ -3,20 +3,14 @@ const router = express.Router();
 const upload = require("../utils/multer");
 
 //Controllers
-const {
-  register,
-  login,
-  forgotPassword,
-  resetPassword,
-  changePassword,
-  editProfile,
-  getUserInfo,
-  deleteUser,
-} = require("../controllers/maid");
+const { register } = require("../controllers/Maid/registermaid")
+const { login } = require("../controllers/Maid/loginmaid")
+const { forgotPassword, resetPassword, changePassword } = require("../controllers/Maid/passwordmaid")
+const { editProfile, getUserInfo, deleteUser } = require("../controllers/Maid/profilemaid")
 
 //Middleware
 const verifyMaid = require("../middlewares/verifyMaid");
-const { verifyotp } = require("../controllers/owner");
+const { verifyotp } = require("../controllers/Owner/otp");
 
 router.post(
   "/register",
